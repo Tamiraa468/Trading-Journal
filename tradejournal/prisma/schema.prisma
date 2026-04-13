@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Plan {
+  BASIC
+  PLUS
+}
+
+enum Side {
+  LONG
+  SHORT
+}
+
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  email     String   @unique
+  name      String?
+  plan      Plan     @default(BASIC)
+  trades    Trade[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clerkId])
+}
+
+model Trade {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ticker      String
+  side        Side
+  entryPrice  Float
+  exitPrice   Float
+  quantity    Int          @default(100)
+  pnl         Float
+  date        DateTime
+  strategy    String?
+  notes       String?
+  screenshots Screenshot[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([userId, date(sort: Desc)])
+  @@index([userId, ticker])
+  @@index([userId, strategy])
+}
+
+model Screenshot {
+  id        String   @id @default(cuid())
+  tradeId   String
+  trade     Trade    @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  url       String
+  createdAt DateTime @default(now())
+
+  @@index([tradeId])
+}
