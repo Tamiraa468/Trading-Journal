@@ -1,9 +1,11 @@
 import { PrismaClient, Side } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-const SAMPLE_CLERK_ID = "user_seed_demo";
+const SAMPLE_EXTERNAL_AUTH_SUBJECT = "local_seed_demo";
 const SAMPLE_EMAIL = "demo@tradejournal.local";
+const SAMPLE_PASSWORD = process.env.SEED_USER_PASSWORD?.trim() || "DemoPass123!";
 
 type SeedTrade = {
   ticker: string;
@@ -33,13 +35,26 @@ function calcPnl(t: SeedTrade): number {
 }
 
 async function main() {
+  const passwordHash = await bcrypt.hash(SAMPLE_PASSWORD, 12);
+
   const user = await prisma.user.upsert({
-    where: { clerkId: SAMPLE_CLERK_ID },
-    update: {},
+    where: { email: SAMPLE_EMAIL },
+    update: {
+      passwordHash,
+      emailVerifiedAt: new Date(),
+      failedLoginCount: 0,
+      lockedUntil: null,
+      passwordUpdatedAt: new Date(),
+    },
     create: {
-      clerkId: SAMPLE_CLERK_ID,
+      // Reusing existing schema field as external auth subject.
+      clerkId: SAMPLE_EXTERNAL_AUTH_SUBJECT,
       email: SAMPLE_EMAIL,
       name: "Demo Trader",
+      emailVerifiedAt: new Date(),
+      passwordHash,
+      failedLoginCount: 0,
+      passwordUpdatedAt: new Date(),
     },
   });
 
@@ -62,6 +77,10 @@ async function main() {
   await prisma.trade.createMany({ data: records });
 
   console.log(`Seeded ${records.length} trades for user ${user.email}.`);
+  console.log("Demo credentials:", {
+    email: SAMPLE_EMAIL,
+    password: SAMPLE_PASSWORD,
+  });
 }
 
 main()

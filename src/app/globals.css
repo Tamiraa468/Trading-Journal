@@ -199,21 +199,6 @@ input[type="number"] {
   }
 }
 
-/* Clerk theme overrides */
-.cl-card,
-.cl-rootBox .cl-card {
-  background-color: var(--color-bg-card) !important;
-  border: 1px solid var(--color-border) !important;
-}
-.cl-formButtonPrimary {
-  background-color: var(--color-accent) !important;
-}
-.cl-formFieldInput {
-  background-color: var(--color-bg-input) !important;
-  border-color: var(--color-border) !important;
-  color: var(--color-txt-primary) !important;
-}
-
 /* Slide-in animation for the trade form */
 @keyframes slide-in {
   from { opacity: 0; transform: translateY(-8px); }
