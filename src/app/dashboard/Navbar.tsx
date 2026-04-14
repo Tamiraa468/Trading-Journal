@@ -29,7 +29,7 @@ export function Navbar() {
               title="Coming soon"
               className="px-3 py-1.5 rounded-md text-txt-dim cursor-not-allowed"
             >
-              Calendar
+              Календар
             </span>
             <span
               title="Coming soon"
