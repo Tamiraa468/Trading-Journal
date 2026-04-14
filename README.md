@@ -1,68 +1,150 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# TradeJournal
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A dark, fast trading journal. Log every trade, track your P&L, and analyze your strategy.
 
-## About Laravel
+## Tech Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Next.js 16** (App Router, React 19, Turbopack)
+- **TypeScript**
+- **Tailwind CSS v4** (CSS-first theme via `@theme`)
+- **Clerk** (`@clerk/nextjs`, `@clerk/themes`) — authentication
+- **Prisma 6** + **PostgreSQL**
+- **Recharts** — P&L bar chart
+- **Zod** — request validation
+- **date-fns** — date formatting
+- **svix** — Clerk webhook verification
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Project Structure
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```
+tradejournal/
+├── middleware.ts                       # Clerk middleware protecting /dashboard(.*)
+├── prisma/
+│   ├── schema.prisma                   # User, Trade, Screenshot models
+│   └── seed.ts                         # 8 sample trades
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx                  # ClerkProvider + fonts
+│   │   ├── page.tsx                    # Landing
+│   │   ├── globals.css                 # Tailwind v4 theme + components
+│   │   ├── sign-in/[[...sign-in]]/     # Clerk SignIn
+│   │   ├── sign-up/[[...sign-up]]/     # Clerk SignUp
+│   │   ├── api/
+│   │   │   ├── trades/route.ts         # GET list, POST create
+│   │   │   ├── trades/[id]/route.ts    # GET / PATCH / DELETE
+│   │   │   └── webhooks/clerk/route.ts # User sync via svix
+│   │   └── dashboard/
+│   │       ├── page.tsx                # Server page — data + stats
+│   │       ├── Navbar.tsx              # Nav + UserButton
+│   │       ├── DashboardShell.tsx      # Header + form toggle
+│   │       ├── StatsGrid.tsx           # 6 stat cards
+│   │       ├── PnlChart.tsx            # Recharts bar chart (14d)
+│   │       ├── TradeForm.tsx           # + Log trade form
+│   │       ├── TradeLog.tsx            # Filterable trade table
+│   │       └── types.ts                # SerializedTrade
+│   └── lib/
+│       ├── db.ts                       # Prisma singleton
+│       ├── auth.ts                     # getCurrentUser / requireUser
+│       ├── validations.ts              # Zod schemas + STRATEGIES
+│       ├── stats.ts                    # calculateStats
+│       └── format.ts                   # $ / color helpers
+└── .env.example
+```
 
-## Learning Laravel
+## Setup
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 1. Prerequisites
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+- Node.js 20+
+- PostgreSQL running locally, or a free [Neon](https://neon.tech) database
+- A free [Clerk](https://clerk.com) account
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 2. Install dependencies
 
-## Laravel Sponsors
+```bash
+npm install
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 3. Environment variables
 
-### Premium Partners
+Copy `.env.example` to `.env` and fill in the values:
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+```bash
+cp .env.example .env
+```
 
-## Contributing
+Then edit `.env`:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- Create an app in the [Clerk Dashboard](https://dashboard.clerk.com) and copy the **publishable** and **secret** keys.
+- For the webhook, create an endpoint in Clerk pointing to `https://<your-tunnel>/api/webhooks/clerk` (use `ngrok` or similar in dev), subscribe it to `user.created` / `user.updated` / `user.deleted`, and paste the signing secret.
+- `DATABASE_URL` — local Postgres URL or a Neon connection string.
 
-## Code of Conduct
+### 4. Database
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+npx prisma migrate dev --name init   # create tables
+npm run db:seed                      # optional: insert 8 sample trades
+```
 
-## Security Vulnerabilities
+The seed uses a placeholder `clerkId` (`user_seed_demo`). After you sign in through Clerk the first time, your real user is synced by the webhook (or lazily by `getCurrentUser()` on first dashboard load), and you can start logging real trades.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 5. Run it
 
-## License
+```bash
+npm run dev
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-# book
-# Trading-Journal
+Open <http://localhost:3000> — the landing page redirects to `/dashboard` once you're signed in.
+
+## Scripts
+
+| Command              | What it does                         |
+| -------------------- | ------------------------------------ |
+| `npm run dev`        | Start Next.js dev server (Turbopack) |
+| `npm run build`      | Production build                     |
+| `npm run start`      | Start built app                      |
+| `npm run lint`       | ESLint                               |
+| `npm run db:migrate` | `prisma migrate dev`                 |
+| `npm run db:push`    | Sync schema without a migration      |
+| `npm run db:seed`    | Insert sample trades                 |
+| `npm run db:studio`  | Open Prisma Studio                   |
+
+## Theme
+
+Trading-terminal dark palette (exposed as Tailwind tokens via `@theme` in `globals.css`):
+
+| Token         | Hex       |
+| ------------- | --------- |
+| `bg-primary`  | `#0b0e11` |
+| `bg-card`     | `#12161c` |
+| `bg-input`    | `#181d25` |
+| `bg-hover`    | `#1a2030` |
+| `border`      | `#1e2738` |
+| `accent`      | `#2a7aff` |
+| `win`         | `#00d68f` |
+| `loss`        | `#ff4757` |
+| `warn`        | `#ffbe0b` |
+| `txt-primary` | `#e4e8ef` |
+| `txt-muted`   | `#6b7a90` |
+| `txt-dim`     | `#3d4a5c` |
+
+Fonts: **Outfit** for display, **JetBrains Mono** for numbers and code.
+
+## API Reference
+
+| Method | Route                     | Description                          |
+| ------ | ------------------------- | ------------------------------------ |
+| GET    | `/api/trades`             | List user trades (query: filter, strategy, ticker) |
+| POST   | `/api/trades`             | Create trade (auto-calculates P&L)   |
+| GET    | `/api/trades/[id]`        | Get single trade + screenshots       |
+| PATCH  | `/api/trades/[id]`        | Update trade                         |
+| DELETE | `/api/trades/[id]`        | Delete trade                         |
+| POST   | `/api/webhooks/clerk`     | Clerk webhook — syncs users          |
+
+All `/api/trades*` routes require auth (401 otherwise).
+
+## Phase 1 scope
+
+Shipped: auth, CRUD for trades, stats, daily P&L chart, filterable trade log, dark theme, seed data.
+
+Not yet: calendar view, reports, screenshot uploads (schema is ready), multi-currency, tags beyond strategy.
