@@ -23,38 +23,58 @@ enum EmailCodePurpose {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  clerkId   String   @unique
-  email     String   @unique
-  name      String?
-  emailVerifiedAt    DateTime?
+  id                String      @id @default(cuid())
+  clerkId           String      @unique
+  email             String      @unique
+  name              String?
+  emailVerifiedAt   DateTime?
   passwordHash      String?
-  failedLoginCount  Int      @default(0)
+  failedLoginCount  Int         @default(0)
   lockedUntil       DateTime?
   lastLoginAt       DateTime?
   passwordUpdatedAt DateTime?
-  plan      Plan     @default(BASIC)
-  emailCodes EmailCode[]
-  trades    Trade[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  plan              Plan        @default(BASIC)
+  emailCodes        EmailCode[]
+  trades            Trade[]
+  sessions          Session[]
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 
   @@index([clerkId])
 }
 
+model Session {
+  id        String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model RateLimit {
+  ip        String   @id
+  count     Int      @default(1)
+  resetTime DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model EmailCode {
-  id               String           @id @default(cuid())
-  userId           String
-  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  purpose          EmailCodePurpose
-  codeHash         String
-  expiresAt        DateTime
-  attemptsLeft     Int              @default(5)
-  resendNotBefore  DateTime
-  sentCount        Int              @default(1)
-  consumedAt       DateTime?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  id              String           @id @default(cuid())
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose         EmailCodePurpose
+  codeHash        String
+  expiresAt       DateTime
+  attemptsLeft    Int              @default(5)
+  resendNotBefore DateTime
+  sentCount       Int              @default(1)
+  consumedAt      DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   @@unique([userId, purpose])
   @@index([expiresAt])

@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { buildPasswordResetTemplate } from "@/lib/email-templates";
 import { sendTransactionalEmail } from "@/lib/mailer";
 import { forgotPasswordSchema } from "@/lib/validations";
+import { authRateLimiter, getClientIp } from "@/lib/rate-limit";
 
 type ForgotPasswordUserRow = {
   id: string;
@@ -33,6 +34,15 @@ function isSameOrigin(req: NextRequest): boolean {
 }
 
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req);
+  const rateLimit = await authRateLimiter.check(ip);
+  if (!rateLimit.success) {
+    return Response.json({ error: "Too many requests. Please try again later." }, { status: 429 });
+  }
+
+  // Add random delay to prevent timing attacks
+  await new Promise((resolve) => setTimeout(resolve, Math.random() * 500 + 200));
+
   if (!isSameOrigin(req)) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }

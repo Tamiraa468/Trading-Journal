@@ -14,6 +14,7 @@ export type AuthClaims = {
   email: string | null;
   name: string | null;
   issuedAt: number | null;
+  token: string;
 };
 
 function asNonEmptyString(value: unknown): string | null {
@@ -49,7 +50,7 @@ export async function getAuthClaims(): Promise<AuthClaims | null> {
     const name = asNonEmptyString(payload.name);
     const issuedAt = asNumericEpochSeconds(payload.iat);
 
-    return { sub, email, name, issuedAt };
+    return { sub, email, name, issuedAt, token };
   } catch {
     return null;
   }
@@ -58,6 +59,14 @@ export async function getAuthClaims(): Promise<AuthClaims | null> {
 export async function getCurrentUser(): Promise<User | null> {
   const claims = await getAuthClaims();
   if (!claims) return null;
+
+  const session = await db.session.findUnique({
+    where: { id: claims.token },
+  });
+
+  if (!session || session.expiresAt.getTime() < Date.now()) {
+    return null;
+  }
 
   const user = await db.user.findUnique({
     where: { id: claims.sub },
