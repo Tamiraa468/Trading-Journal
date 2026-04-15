@@ -1,52 +1,68 @@
-type Bucket = { count: number; resetAt: number };
+import { db } from "@/lib/db";
 
-const buckets = new Map<string, Bucket>();
+export class RateLimiter {
+  private maxRequests: number;
+  private windowMs: number;
 
-let lastSweep = 0;
-function sweep(now: number) {
-  if (now - lastSweep < 60_000) return;
-  lastSweep = now;
-  for (const [k, b] of buckets) {
-    if (b.resetAt <= now) buckets.delete(k);
+  constructor(maxRequests: number, windowMs: number) {
+    this.maxRequests = maxRequests;
+    this.windowMs = windowMs;
+  }
+
+  async check(ip: string): Promise<{ success: boolean; limit: number; remaining: number; reset: number }> {
+    const now = new Date();
+    
+    let record = await db.rateLimit.findUnique({ where: { ip } });
+
+    if (!record) {
+      record = await db.rateLimit.create({
+        data: {
+          ip,
+          count: 1,
+          resetTime: new Date(now.getTime() + this.windowMs),
+        },
+      });
+      return { success: true, limit: this.maxRequests, remaining: this.maxRequests - 1, reset: record.resetTime.getTime() };
+    }
+
+    if (now > record.resetTime) {
+      record = await db.rateLimit.update({
+        where: { ip },
+        data: {
+          count: 1,
+          resetTime: new Date(now.getTime() + this.windowMs),
+        },
+      });
+      return { success: true, limit: this.maxRequests, remaining: this.maxRequests - 1, reset: record.resetTime.getTime() };
+    }
+
+    if (record.count >= this.maxRequests) {
+      return { success: false, limit: this.maxRequests, remaining: 0, reset: record.resetTime.getTime() };
+    }
+
+    record = await db.rateLimit.update({
+      where: { ip },
+      data: {
+        count: record.count + 1,
+      },
+    });
+    
+    return { success: true, limit: this.maxRequests, remaining: this.maxRequests - record.count, reset: record.resetTime.getTime() };
   }
 }
 
-export type RateLimitResult = {
-  success: boolean;
-  remaining: number;
-  resetAt: Date;
-};
+// 5 requests per minute for auth endpoints
+export const authRateLimiter = new RateLimiter(5, 60 * 1000);
 
-export function rateLimit(
-  key: string,
-  limit: number,
-  windowMs: number,
-): RateLimitResult {
-  const now = Date.now();
-  sweep(now);
-
-  const bucket = buckets.get(key);
-  if (!bucket || bucket.resetAt <= now) {
-    const resetAt = now + windowMs;
-    buckets.set(key, { count: 1, resetAt });
-    return { success: true, remaining: limit - 1, resetAt: new Date(resetAt) };
+export function getClientIp(req: Request): string {
+  const forwardedFor = req.headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    return forwardedFor.split(",")[0].trim();
   }
-
-  if (bucket.count >= limit) {
-    return { success: false, remaining: 0, resetAt: new Date(bucket.resetAt) };
+  const realIp = req.headers.get("x-real-ip");
+  if (realIp) {
+    return realIp;
   }
-
-  bucket.count += 1;
-  return {
-    success: true,
-    remaining: limit - bucket.count,
-    resetAt: new Date(bucket.resetAt),
-  };
+  return "unknown-ip";
 }
 
-export function rateLimitHeaders(r: RateLimitResult): Record<string, string> {
-  return {
-    "X-RateLimit-Remaining": String(r.remaining),
-    "X-RateLimit-Reset": String(Math.floor(r.resetAt.getTime() / 1000)),
-  };
-}

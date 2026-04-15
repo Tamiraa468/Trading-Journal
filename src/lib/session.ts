@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
 import {
   AUTH_COOKIE_NAME,
   getTokenMaxAgeSeconds,
@@ -38,6 +39,14 @@ export async function createSession(subject: SessionSubject): Promise<{
   if (maxAge <= 0) {
     throw new Error("Could not create session.");
   }
+
+  await db.session.create({
+    data: {
+      id: token,
+      userId: subject.id,
+      expiresAt: new Date(Date.now() + maxAge * 1000),
+    },
+  });
 
   return { token, maxAge };
 }

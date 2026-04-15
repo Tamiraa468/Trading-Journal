@@ -5,6 +5,7 @@ import { EmailCodeCooldownError, issueEmailCode } from "@/lib/auth-email-code";
 import { buildEmailVerificationTemplate } from "@/lib/email-templates";
 import { sendTransactionalEmail } from "@/lib/mailer";
 import { signUpSchema } from "@/lib/validations";
+import { authRateLimiter, getClientIp } from "@/lib/rate-limit";
 
 const LOCAL_SUBJECT_PREFIX = "local_";
 
@@ -64,6 +65,15 @@ async function findUserByEmailForRegister(
 }
 
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req);
+  const rateLimit = await authRateLimiter.check(ip);
+  if (!rateLimit.success) {
+    return Response.json({ error: "Too many requests. Please try again later." }, { status: 429 });
+  }
+
+  // Add random delay to prevent timing attacks
+  await new Promise((resolve) => setTimeout(resolve, Math.random() * 500 + 200));
+
   if (!isSameOrigin(req)) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
