@@ -1,4 +1,4 @@
-import type { Trade } from "@prisma/client";
+type StatsTrade = { pnl: number; date: Date };
 
 export type TradeStats = {
   totalPnl: number;
@@ -18,7 +18,7 @@ function r2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
-export function calculateStats(trades: Trade[]): TradeStats {
+export function calculateStats(trades: StatsTrade[]): TradeStats {
   if (trades.length === 0) {
     return {
       totalPnl: 0,
