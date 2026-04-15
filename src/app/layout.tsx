@@ -15,9 +15,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TradeJournal — Log every trade",
+  title: "NOMAD Traders — Log every trade",
   description:
-    "A fast, dark trading journal. Log every trade, track your P&L, analyze your strategy.",
+    "NOMAD Traders: a fast trading journal to log every trade, track P&L, and analyze strategy.",
 };
 
 export default function RootLayout({

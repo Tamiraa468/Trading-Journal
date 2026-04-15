@@ -21,8 +21,8 @@
   --color-warn: #ffbe0b;
 
   --color-txt-primary: #e4e8ef;
-  --color-txt-muted: #6b7a90;
-  --color-txt-dim: #3d4a5c;
+  --color-txt-muted: #8ea2bf;
+  --color-txt-dim: #6f83a1;
 }
 
 html,
@@ -206,4 +206,46 @@ input[type="number"] {
 }
 .animate-slide-in {
   animation: slide-in 180ms ease-out;
+}
+
+@keyframes landing-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes chart-grow {
+  from {
+    opacity: 0.25;
+    transform: scaleY(0.08);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+.landing-reveal {
+  opacity: 0;
+  animation: landing-rise 560ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.chart-bar {
+  transform-origin: bottom;
+  animation: chart-grow 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-reveal,
+  .chart-bar,
+  .animate-slide-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }

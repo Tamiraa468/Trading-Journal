@@ -115,39 +115,40 @@ export async function POST(req: NextRequest) {
   const { email, password } = parsed.data;
   const now = new Date();
 
-  const user = await findUserByEmailForAuth(email);
+  try {
+    const user = await findUserByEmailForAuth(email);
 
-  const isLocked = Boolean(user?.lockedUntil && user.lockedUntil > now);
+    const isLocked = Boolean(user?.lockedUntil && user.lockedUntil > now);
 
-  const hashToCheck = user?.passwordHash ?? DUMMY_PASSWORD_HASH;
-  const passwordMatch = await bcrypt.compare(password, hashToCheck);
-  if (!user || !user.passwordHash || isLocked || !passwordMatch) {
-    if (user && !isLocked) {
-      await recordFailedLogin(user.id, now);
+    const hashToCheck = user?.passwordHash ?? DUMMY_PASSWORD_HASH;
+    const passwordMatch = await bcrypt.compare(password, hashToCheck);
+    
+    if (!user || !user.passwordHash || isLocked || !passwordMatch) {
+      if (user && !isLocked) {
+        await recordFailedLogin(user.id, now);
+      }
+
+      return Response.json({ error: "Invalid email or password." }, { status: 401 });
     }
 
-    return Response.json({ error: "Invalid email or password." }, { status: 401 });
-  }
+    if (!user.emailVerifiedAt) {
+      return Response.json(
+        {
+          error: "Email verification required.",
+          code: "EMAIL_UNVERIFIED",
+        },
+        { status: 403 },
+      );
+    }
 
-  if (!user.emailVerifiedAt) {
-    return Response.json(
-      {
-        error: "Email verification required.",
-        code: "EMAIL_UNVERIFIED",
-      },
-      { status: 403 },
-    );
-  }
+    await db.$executeRaw`
+      UPDATE "User"
+      SET "failedLoginCount" = 0,
+          "lockedUntil" = NULL,
+          "lastLoginAt" = ${now}
+      WHERE "id" = ${user.id}
+    `;
 
-  await db.$executeRaw`
-    UPDATE "User"
-    SET "failedLoginCount" = 0,
-        "lockedUntil" = NULL,
-        "lastLoginAt" = ${now}
-    WHERE "id" = ${user.id}
-  `;
-
-  try {
     const session = await createSession({
       id: user.id,
       email: user.email,
@@ -157,7 +158,17 @@ export async function POST(req: NextRequest) {
     const response = NextResponse.json({ ok: true });
     setSessionCookie(response, session);
     return response;
-  } catch (err) {
+  } catch (err: unknown) {
+    if (
+      (typeof err === "object" && err !== null && "code" in err && (err as { code?: string }).code === "P1001") ||
+      (typeof err === "object" && err !== null && err.constructor.name === "PrismaClientInitializationError")
+    ) {
+      return Response.json(
+        { error: "Database холболт түр тасарсан байна. Дахин оролдоно уу." },
+        { status: 503 },
+      );
+    }
+
     if (process.env.NODE_ENV !== "production") {
       console.error("Session create failed:", err);
     }

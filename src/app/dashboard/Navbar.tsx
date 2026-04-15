@@ -28,9 +28,9 @@ export function Navbar() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 h-14 flex items-center justify-between">
         <div className="flex items-center gap-6">
           <Link href="/dashboard" className="flex items-center gap-2.5">
-            <span className="tj-logo-box">TJ</span>
+            <span className="tj-logo-box">NT</span>
             <span className="font-display font-semibold text-txt-primary">
-              TradeJournal
+              NOMAD Traders
             </span>
             <span className="ml-1 px-1.5 py-0.5 text-[10px] font-mono rounded bg-accent-glow text-accent border border-accent/40">
               PHASE 1

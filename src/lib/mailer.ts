@@ -79,7 +79,7 @@ function getTransporter(): nodemailer.Transporter {
 export async function sendTransactionalEmail(input: SendTransactionalEmailInput) {
   const transporter = getTransporter();
   const from = usePreviewTransport
-    ? process.env.SMTP_FROM?.trim() || "TradeJournal <no-reply@localhost>"
+    ? process.env.SMTP_FROM?.trim() || "NOMAD Traders"
     : getRequiredEnv("SMTP_FROM");
 
   const info = await transporter.sendMail({

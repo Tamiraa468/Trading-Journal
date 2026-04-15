@@ -57,18 +57,18 @@ export async function POST(req: NextRequest) {
 
   const { email } = parsed.data;
 
-  const rows = await db.$queryRaw<ForgotPasswordUserRow[]>`
-    SELECT "id", "email", "passwordHash", "emailVerifiedAt"
-    FROM "User"
-    WHERE "email" = ${email}
-    LIMIT 1
-  `;
-  const user = rows[0] ?? null;
-  if (!user || !user.passwordHash || !user.emailVerifiedAt) {
-    return Response.json({ ok: true });
-  }
-
   try {
+    const rows = await db.$queryRaw<ForgotPasswordUserRow[]>`
+      SELECT "id", "email", "passwordHash", "emailVerifiedAt"
+      FROM "User"
+      WHERE "email" = ${email}
+      LIMIT 1
+    `;
+    const user = rows[0] ?? null;
+    if (!user || !user.passwordHash || !user.emailVerifiedAt) {
+      return Response.json({ ok: true });
+    }
+
     const issued = await issueEmailCode({
       userId: user.id,
       purpose: "RESET_PASSWORD",
@@ -91,9 +91,24 @@ export async function POST(req: NextRequest) {
       return Response.json({ ok: true });
     }
 
+    // Handle database unavailability
+    const isDbUnavailable =
+      (typeof err === "object" && err !== null && "code" in err && (err as { code?: string }).code === "P1001") ||
+      (typeof err === "object" && err !== null && err.constructor.name === "PrismaClientInitializationError");
+
+    if (isDbUnavailable) {
+      return Response.json(
+        { error: "Database холболт түр тасарсан байна. Дахин оролдоно уу." },
+        { status: 503 }
+      );
+    }
+
     if (process.env.NODE_ENV !== "production") {
       console.error("Forgot-password email send failed:", err);
     }
+    
+    // Fallback response for unhandled errors
+    return Response.json({ error: "Server error" }, { status: 500 });
   }
 
   return Response.json({ ok: true });

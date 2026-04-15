@@ -166,7 +166,10 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "Could not create account." }, { status: 409 });
     }
 
-    if (err instanceof Prisma.PrismaClientInitializationError) {
+    if (
+      err instanceof Prisma.PrismaClientInitializationError ||
+      (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P1001")
+    ) {
       return Response.json(
         {
           error:
