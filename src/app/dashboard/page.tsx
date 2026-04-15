@@ -41,7 +41,7 @@ async function loadTrades(): Promise<{
       preview: false,
     };
   } catch {
-    // Clerk not configured or DB unreachable — show demo data so the UI is still previewable.
+    // Auth or DB is not ready — show demo data so the UI stays previewable.
     return { serialized: buildMockTrades(), preview: true };
   }
 }
@@ -62,7 +62,7 @@ export default async function DashboardPage() {
       <Navbar />
       {preview && (
         <div className="w-full bg-accent/10 border-b border-accent/30 text-center py-2 text-xs font-mono text-accent">
-          Preview mode · showing demo data · configure Clerk + DATABASE_URL in .env to use live data
+          Preview mode · showing demo data · configure auth + DATABASE_URL in .env to use live data
         </div>
       )}
       <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 py-6 space-y-6 flex-1">

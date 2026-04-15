@@ -17,17 +17,48 @@ enum Side {
   SHORT
 }
 
+enum EmailCodePurpose {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+}
+
 model User {
   id        String   @id @default(cuid())
   clerkId   String   @unique
   email     String   @unique
   name      String?
+  emailVerifiedAt    DateTime?
+  passwordHash      String?
+  failedLoginCount  Int      @default(0)
+  lockedUntil       DateTime?
+  lastLoginAt       DateTime?
+  passwordUpdatedAt DateTime?
   plan      Plan     @default(BASIC)
+  emailCodes EmailCode[]
   trades    Trade[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([clerkId])
+}
+
+model EmailCode {
+  id               String           @id @default(cuid())
+  userId           String
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose          EmailCodePurpose
+  codeHash         String
+  expiresAt        DateTime
+  attemptsLeft     Int              @default(5)
+  resendNotBefore  DateTime
+  sentCount        Int              @default(1)
+  consumedAt       DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@unique([userId, purpose])
+  @@index([expiresAt])
+  @@index([purpose, consumedAt])
 }
 
 model Trade {

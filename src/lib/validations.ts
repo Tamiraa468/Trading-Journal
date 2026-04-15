@@ -1,5 +1,69 @@
 import { z } from "zod";
 
+export const authEmailSchema = z
+  .string()
+  .trim()
+  .email("Invalid email")
+  .transform((v) => v.toLowerCase());
+
+export const authPasswordSchema = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .max(128, "Password is too long");
+
+export const signInSchema = z.object({
+  email: authEmailSchema,
+  password: authPasswordSchema,
+});
+
+export type SignInInput = z.infer<typeof signInSchema>;
+
+export const signUpSchema = z.object({
+  email: authEmailSchema,
+  name: z
+    .string()
+    .trim()
+    .max(100, "Name is too long")
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v ? v : undefined)),
+});
+
+export type SignUpInput = z.infer<typeof signUpSchema>;
+
+export const sixDigitCodeSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{6}$/, "Code must be exactly 6 digits");
+
+export const verifyEmailCodeSchema = z.object({
+  email: authEmailSchema,
+  code: sixDigitCodeSchema,
+  password: authPasswordSchema,
+});
+
+export type VerifyEmailCodeInput = z.infer<typeof verifyEmailCodeSchema>;
+
+export const resendEmailCodeSchema = z.object({
+  email: authEmailSchema,
+});
+
+export type ResendEmailCodeInput = z.infer<typeof resendEmailCodeSchema>;
+
+export const forgotPasswordSchema = z.object({
+  email: authEmailSchema,
+});
+
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z.object({
+  email: authEmailSchema,
+  code: sixDigitCodeSchema,
+  newPassword: authPasswordSchema,
+});
+
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
 export const STRATEGIES = [
   "Breakout",
   "Reversal",
