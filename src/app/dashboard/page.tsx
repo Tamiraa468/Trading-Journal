@@ -1,7 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { calculateStats } from "@/lib/stats";
-import { Navbar } from "./Navbar";
 import { StatsGrid } from "./StatsGrid";
 import { PnlChart } from "./PnlChart";
 import { TradeLog } from "./TradeLog";
@@ -54,23 +53,26 @@ export default async function DashboardPage() {
     userId: "preview",
     createdAt: new Date(),
     updatedAt: new Date(),
+    source: "MANUAL" as const, // Add a default value for source
+    mt5DealId: null, // Add a default value for mt5DealId
+    swap: 0, // Add a default value for swap
+    commission: 0, // Add a default value for commission
+    reviewed: false, // Add a default value for reviewed
+    magic: 0, // Add a default value for magic
   }));
   const stats = calculateStats(statsTrades);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
+    <>
       {preview && (
         <div className="w-full bg-accent/10 border-b border-accent/30 text-center py-2 text-xs font-mono text-accent">
           Preview mode · showing demo data · configure auth + DATABASE_URL in .env to use live data
         </div>
       )}
-      <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 py-6 space-y-6 flex-1">
-        <DashboardHeader />
-        <StatsGrid stats={stats} />
-        <PnlChart trades={serialized} />
-        <TradeLog trades={serialized} />
-      </main>
-    </div>
+      <DashboardHeader />
+      <StatsGrid stats={stats} />
+      <PnlChart trades={serialized} />
+      <TradeLog trades={serialized} />
+    </>
   );
 }

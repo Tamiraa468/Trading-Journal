@@ -17,6 +17,11 @@ enum Side {
   SHORT
 }
 
+enum TradeSource {
+  MANUAL
+  MT5_SYNC
+}
+
 enum EmailCodePurpose {
   VERIFY_EMAIL
   RESET_PASSWORD
@@ -34,6 +39,12 @@ model User {
   lastLoginAt       DateTime?
   passwordUpdatedAt DateTime?
   plan              Plan        @default(BASIC)
+  mt5Login          String?
+  mt5Server         String?
+  mt5InvestorPass   String?
+  syncToken         String?     @unique
+  syncEnabled       Boolean     @default(false)
+  lastSyncAt        DateTime?
   emailCodes        EmailCode[]
   trades            Trade[]
   sessions          Session[]
@@ -94,6 +105,12 @@ model Trade {
   date        DateTime
   strategy    String?
   notes       String?
+  source      TradeSource  @default(MANUAL)
+  mt5DealId   String?      @unique
+  swap        Float?       @default(0)
+  commission  Float?       @default(0)
+  magic       Int?         @default(0)
+  reviewed    Boolean      @default(false)
   screenshots Screenshot[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
